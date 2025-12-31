@@ -21,13 +21,8 @@ VOWEL_RANK_DICT = {
     4: [] # No possible word with all vowels
 }
 
-# COLOR_CODES = {
-#     "W": "\U000026aa",
-#     "Y": "\U0001f7e1",
-#     "G": "\U0001f7e2"
-# }
-
 GREEN_LETTERS = ['_', '_', '_', '_', '_']
+WHITE_LETTERS = []
 
 
 def words_ranker():
@@ -44,6 +39,14 @@ def words_ranker():
             if char in vowels:
                 vowel_count += 1
         VOWEL_RANK_DICT[vowel_count].append(word)
+
+
+def filtered_ranker(word_list):
+    new_rank_dict = { 2: [], 3: [], 4: [], 5: [] }
+    for word in word_list:
+        unique_letters = len(set(list(word)))
+        new_rank_dict[unique_letters].append(word)
+    return new_rank_dict
 
 
 def update_possibilities(hint, guess):
@@ -71,28 +74,115 @@ def update_possibilities(hint, guess):
     return letters_seen
 
 
+def new_filter(letter_occurrences, result, guess):
+    possible_words = FILTERED_LIST if FILTERED_LIST else FULL_LIST
+    new_filtered_list = []
+
+    for word in possible_words:
+        add = True
+
+        # Check if letters are in letter_occurrences
+        for char in word:
+            if char in letter_occurrences.keys():
+                if letter_occurrences[char] == 0:
+                    WHITE_LETTERS.append(char)
+                    add = False
+                    break
+
+        if not add:
+            continue
+
+        # If we have 'wwwww' for the hint, simply add all other words
+        # Bad words would have been filtered out before
+        if result == 'wwwww' and add:
+            new_filtered_list.append(word)
+            continue
+
+        # If result contains 'g's
+        elif 'g' in result:
+            for i in range(5):
+                if GREEN_LETTERS[i] == "_":
+                    continue
+                else:
+                    if GREEN_LETTERS[i] != word[i]:
+                        add = False
+                        break
+            if not add:
+                continue
+
+        # By this point, if the word is not suitable, we should be out of the iteration and onto the next word
+
+        # If result contains y, we make sure that words must contain at least one instance of that letter
+        # The letter should also not be in the position of the 'y'
+        if 'y' in result:
+            yellow_positions = []
+            for i, c in enumerate(result):
+                if c == 'y':
+                    yellow_positions.append(i)
+
+            # Look at letter occurrences for each character in a word
+            letter_keys = letter_occurrences.keys()
+            letter_counter = {}
+            for char in word:
+                if char not in letter_counter.keys():
+                    letter_counter[char] = 1
+                else:
+                    letter_counter[char] += 1
+
+            for i in range(5):
+                if result[i] == 'y':
+                    if guess[i] not in word:
+                        add = False
+                        break
+
+            for char in letter_counter.keys():
+                if char in letter_keys:
+                    if letter_occurrences[char] == 0: # Skip word if it contains nonexistent letters
+                        add = False
+                        break
+                    
+                    if letter_counter[char] != letter_occurrences[char]:
+                        add = False
+                        break
+
+            # Check positions of yellows
+            for pos in yellow_positions:
+                if word[pos] == guess[pos]:
+                    add = False
+                    break
+
+        final_check = True
+        if add:
+            for char in word:
+                if char in set(WHITE_LETTERS):
+                    final_check = False
+                    break
+            if final_check:
+                new_filtered_list.append(word)
+
+    return new_filtered_list
+
+
 def main():
     # Get rank of words (depending on number of unique letters)
     words_ranker()
     
     solved = False
     guess_round = 0
-    guess= ""
+
     while not solved:
         # Check for failure
         if guess_round > 5:
-            print("shit sorry")
+            print("\nshit sorry")
             break
         
         # First round -> pick random rank-5 word (all unique)
-        # For optimal guessing, we want max number of vowels
+        # For optimal guessing, we want max number of unique letters
         if guess_round == 0:
-            initial_guess_list = VOWEL_RANK_DICT[4]
-            initial_guess = random.choice(initial_guess_list)
-            guess = initial_guess
+            initial_guess_list = WORD_RANK_DICT[5]
+            guess = random.choice(initial_guess_list)
 
-            print("Guess 1:")
-            print(initial_guess)
+            print("\nGuess 1: " + guess)
 
             result = ""
             while True:
@@ -105,21 +195,53 @@ def main():
                         print("Invalid result.")
                         continue
                 result = result_input
+
+                if result == "ggggg":
+                    solved = True
+
+                break
+        
+        # Subsequent rounds
+        else:
+            new_ranks = filtered_ranker(FILTERED_LIST)
+            print(new_ranks)
+            if len(new_ranks[5]) > 0:
+                guess = random.choice(new_ranks[5])
+            elif len(new_ranks[4]) > 0:
+                guess = random.choice(new_ranks[4])
+            else:
+                guess = random.choice(FILTERED_LIST)
+
+            print(f"\nGuess {guess_round + 1}: " + guess)
+
+            result = ""
+            while True:
+                result_input = input("Enter guess result:\n").lower().strip()
+                if len(result_input) != 5:
+                    print("Invalid result.")
+                    continue
+
+                for char in result_input:
+                    if char not in ['w', 'y', 'g']:
+                        print("Invalid result.")
+                        continue
+
+                result = result_input
+
+                if result == "ggggg":
+                    solved = True
+
                 break
 
         # Subsequent rounds -> first find the list of possible words
         letter_occurrences = update_possibilities(result, guess)
 
         # Get filtered list
-        possible_words = FILTERED_LIST if FILTERED_LIST else FULL_LIST
-        new_filtered_list = []
-        for word in possible_words:
-            # Check if letters are in letter_occurrences
-            for char in word:
-                if char in letter_occurrences.keys():
-                    if letter_occurrences[char] == 0:
-                        break
-                        
+        new_filtered_list = new_filter(letter_occurrences, result, guess)
+        FILTERED_LIST = new_filtered_list
+
+        if solved:
+            print("\nAnswer found: " + guess)
         
         guess_round += 1
 

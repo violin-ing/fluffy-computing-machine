@@ -1,3 +1,0 @@
-word: crack
-
-guess: louie = wwwww

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle Solver UI</title>
+    <style>
+        :root {
+            /* Theme Colors */
+            --bg-color: #121213;
+            --tile-border: #3a3a3c;
+            --tile-text: #ffffff;
+            
+            /* Hint Colors */
+            --color-absent: #3a3a3c;  /* 'w' - Gray */
+            --color-present: #b59f3b; /* 'y' - Yellow */
+            --color-correct: #538d4e; /* 'g' - Green */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--tile-text);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Game Board */
+        #board-container {
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+            gap: 5px;
+            margin-bottom: 30px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+        }
+
+        .tile {
+            width: 62px;
+            height: 62px;
+            border: 2px solid var(--tile-border);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            user-select: none;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        /* Tile Visual States */
+        /* Empty = No letter yet */
+        .tile[data-state='empty'] {
+            background-color: transparent;
+        }
+
+        /* Absent (Gray) -> maps to 'w' */
+        .tile[data-state='absent'] {
+            background-color: var(--color-absent);
+            border-color: var(--color-absent);
+        }
+
+        /* Present (Yellow) -> maps to 'y' */
+        .tile[data-state='present'] {
+            background-color: var(--color-present);
+            border-color: var(--color-present);
+        }
+
+        /* Correct (Green) -> maps to 'g' */
+        .tile[data-state='correct'] {
+            background-color: var(--color-correct);
+            border-color: var(--color-correct);
+        }
+
+        /* UI Controls */
+        #controls {
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        button.action-btn {
+            padding: 15px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            background-color: white;
+            color: black;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        button.action-btn:hover {
+            background-color: #e2e2e2;
+        }
+
+        /* Dev Tools (For testing without backend) */
+        .dev-tools {
+            margin-top: 40px;
+            padding: 15px;
+            border-top: 1px solid #333;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .dev-tools button {
+            margin: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Wordle Solver Bot</h1>
+
+    <div id="board-container">
+        </div>
+
+    <div id="controls">
+        <button id="submit-hints" class="action-btn">Send Hints</button>
+    </div>
+
+    <div class="dev-tools">
+        <p>DEV TOOLS (Simulate Backend)</p>
+        <button onclick="botGuess('AUDIO')">Bot Guesses "AUDIO"</button>
+        <button onclick="botGuess('CRANE')">Bot Guesses "CRANE"</button>
+        <button onclick="botGuess('WHEEL')">Bot Guesses "WHEEL"</button>
+    </div>
+
+    <script>
+        const ROWS = 6;
+        const COLS = 5;
+        let currentRowIndex = 0; 
+
+        // The cycle order: Gray (w) -> Yellow (y) -> Green (g)
+        const STATE_CYCLE = ['absent', 'present', 'correct'];
+
+        function initBoard() {
+            const board = document.getElementById('board-container');
+
+            for (let r = 0; r < ROWS; r++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row';
+                
+                for (let c = 0; c < COLS; c++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.id = `tile-${r}-${c}`;
+                    tile.setAttribute('data-state', 'empty');
+                    
+                    // Click listener to toggle colors
+                    tile.addEventListener('click', () => toggleTileState(tile));
+                    
+                    rowDiv.appendChild(tile);
+                }
+                board.appendChild(rowDiv);
+            }
+        }
+
+        function toggleTileState(tile) {
+            // 1. Don't allow clicking if there is no letter
+            if (tile.innerText === '') return;
+
+            // 2. Cycle the state
+            const currentState = tile.getAttribute('data-state');
+            
+            // Default next state
+            let nextState = 'absent'; 
+
+            if (currentState !== 'empty') {
+                const currentIndex = STATE_CYCLE.indexOf(currentState);
+                const nextIndex = (currentIndex + 1) % STATE_CYCLE.length;
+                nextState = STATE_CYCLE[nextIndex];
+            }
+
+            // 3. Update UI
+            tile.setAttribute('data-state', nextState);
+        }
+
+        // --- CORE LOGIC: GENERATE HINT STRING ---
+
+        function generateHintString() {
+            // Check if game hasn't started
+            if (currentRowIndex === 0) return null;
+
+            // We want the hints for the row that was just filled (index - 1)
+            const activeRow = currentRowIndex - 1;
+            let hintString = "";
+
+            for (let i = 0; i < COLS; i++) {
+                const tile = document.getElementById(`tile-${activeRow}-${i}`);
+                const state = tile.getAttribute('data-state');
+
+                // Map CSS state to your specific chars: g, y, w
+                if (state === 'correct') {
+                    hintString += 'g';
+                } else if (state === 'present') {
+                    hintString += 'y';
+                } else {
+                    // Default to 'w' (gray/wrong)
+                    hintString += 'w'; 
+                }
+            }
+            
+            return hintString;
+        }
+
+        // --- EVENT LISTENERS ---
+
+        document.getElementById('submit-hints').addEventListener('click', () => {
+            const resultString = generateHintString();
+
+            if (!resultString) {
+                alert("The bot hasn't made a guess yet!");
+                return;
+            }
+
+            console.log("Sending to backend:", resultString);
+            alert(`Sent to backend: "${resultString}"`);
+
+            /* TODO: INTEGRATION 
+               Add your Fetch/API call here. Example:
+               
+               fetch('http://localhost:5000/submit', {
+                   method: 'POST',
+                   body: JSON.stringify({ hints: resultString })
+               });
+            */
+        });
+
+        // --- BACKEND SIMULATION ---
+        
+        // Call this function when your backend sends a word
+        function botGuess(word) {
+            if (currentRowIndex >= ROWS) {
+                alert("Board full!");
+                return;
+            }
+
+            word = word.toUpperCase();
+            
+            for (let i = 0; i < COLS; i++) {
+                const tile = document.getElementById(`tile-${currentRowIndex}-${i}`);
+                tile.innerText = word[i];
+                // Default the colors to Gray ('w') so user can just click the greens/yellows
+                tile.setAttribute('data-state', 'absent'); 
+            }
+
+            currentRowIndex++;
+        }
+
+        // Initialize
+        initBoard();
+
+    </script>
+</body>
+</html>
