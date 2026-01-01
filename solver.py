@@ -53,115 +53,92 @@ class WordleSolver:
     
 
     def update_possibilities(self, hint, guess):
-        # E.g. guess = crack, hint = ygwwy
-        # Stores the occurrences of letters for that guess
         letters_seen = {}
-        index_tracker = 0
-        while index_tracker < 5:
-            if hint[index_tracker] == 'w':
-                letters_seen[guess[index_tracker]] = 0
-            elif hint[index_tracker] == 'y':
-                if guess[index_tracker] not in letters_seen.keys():
-                    letters_seen[guess[index_tracker]] = 1
-                else:
-                    letters_seen[guess[index_tracker]] += 1
-            else:
-                if guess[index_tracker] not in letters_seen.keys():
-                    letters_seen[guess[index_tracker]] = 1
-                else:
-                    letters_seen[guess[index_tracker]] += 1
-                self.green_letters[index_tracker] = guess[index_tracker]
+        
+        # PASS 1: Handle 'g' and 'w'
+        # We do this first so we know which letters are definitely in the word
+        for i in range(5):
+            char = guess[i]
+            color = hint[i]
             
-            index_tracker += 1
+            if color != 'w': # If Green or Yellow
+                if char not in letters_seen:
+                    letters_seen[char] = 1
+                else:
+                    letters_seen[char] += 1
+                
+                if color == 'g':
+                    self.green_letters[i] = char
 
+        # PASS 2: Handle 'w'
+        for i in range(5):
+            char = guess[i]
+            color = hint[i]
+            
+            if color == 'w':
+                # Only mark as 0 (forbidden) if not 'y' or 'g'
+                if char not in letters_seen:
+                    letters_seen[char] = 0
+                    if char not in self.white_letters:
+                        self.white_letters.append(char)
+        
         return letters_seen
 
 
     def process_guess(self, result):
-        letter_occurrences = self.update_possibilities(result, self.current_guess)
+        letters_seen = self.update_possibilities(result, self.current_guess)
 
         possible_words = self.filtered_list if self.filtered_list else self.full_list
         new_filtered_list = []
 
+        # --- YOUR ORIGINAL FILTER LOGIC (Adapted & Fixed) ---
         for word in possible_words:
             add = True
-
-            # Check if letters are in letter_occurrences
-            for char in word:
-                if char in letter_occurrences.keys():
-                    if letter_occurrences[char] == 0:
-                        self.white_letters.append(char)
-                        add = False
-                        break
-
+            
+            # Check letters seen (Counts)
+            for char in letters_seen:
+                count_needed = letters_seen[char]
+                
+                if count_needed == 0:
+                    if char in word:
+                        add = False; break
+                else:
+                    if word.count(char) < count_needed:
+                        add = False; break
+            
             if not add: continue
 
-            # If we have 'wwwww' for the hint, simply add all other words
-            # Bad words would have been filtered out before
-            if result == 'wwwww' and add:
-                new_filtered_list.append(word)
-                continue
-
-            # If result contains 'g's
-            elif 'g' in result:
+            # Check for 'g's
+            # Candidates must have same letter at positions of 'g'
+            if 'g' in result:
                 for i in range(5):
-                    if self.green_letters[i] == "_":
-                        continue
-                    else:
+                    if self.green_letters[i] != "_":
                         if self.green_letters[i] != word[i]:
                             add = False
                             break
                 if not add: continue
 
-            # By this point, if the word is not suitable, we should be out of the iteration and onto the next word
-
-            # If result contains y, we make sure that words must contain at least one instance of that letter
-            # The letter should also not be in the position of the 'y'
+            # Check for 'y's
+            # Filtered words cannot have same letter as position of 'y'
             if 'y' in result:
-                yellow_positions = []
-                for i, c in enumerate(result):
-                    if c == 'y':
-                        yellow_positions.append(i)
-
-                # Look at letter occurrences for each character in a word
-                letter_keys = letter_occurrences.keys()
-                letter_counter = {}
-                for char in word:
-                    if char not in letter_counter.keys():
-                        letter_counter[char] = 1
-                    else:
-                        letter_counter[char] += 1
-
                 for i in range(5):
                     if result[i] == 'y':
-                        if self.current_guess[i] not in word:
+                        if word[i] == self.current_guess[i]:
                             add = False
                             break
+                if not add: continue
 
-                for char in letter_counter.keys():
-                    if char in letter_keys:
-                        if letter_occurrences[char] == 0: # Skip word if it contains nonexistent letters
-                            add = False
-                            break
-                        
-                        if letter_counter[char] != letter_occurrences[char]:
-                            add = False
-                            break
-
-                # Check positions of yellows
-                for pos in yellow_positions:
-                    if word[pos] == self.current_guess[pos]:
-                        add = False
-                        break
-
-            final_check = True
+            # Check for 'w's
+            # Filtered words should not contain gray letters
             if add:
-                for char in word:
-                    if char in set(self.white_letters):
-                        final_check = False
-                        break
-                if final_check:
-                    new_filtered_list.append(word)
+                for char in self.white_letters:
+                    if char in word:
+                         if char not in letters_seen or letters_seen[char] == 0:
+                             add = False
+                             break
+            
+            if add:
+                new_filtered_list.append(word)
 
         # Return new word
         self.filtered_list = new_filtered_list

@@ -4,7 +4,7 @@ from solver import WordleSolver
 
 
 app = Flask(__name__, template_folder='templates')
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 bot = WordleSolver()
 
