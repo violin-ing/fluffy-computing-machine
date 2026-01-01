@@ -163,7 +163,7 @@ submitBtn.addEventListener('click', () => {
     }
 
     if (currentRowIndex === ROWS) {
-        showModal('loss', "Bot failed to solve it within 6 tries.");
+        showModal('loss', "WordNotFound error.");
         handleGameOver();
         return;
     }
