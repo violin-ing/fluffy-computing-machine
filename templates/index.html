@@ -306,7 +306,7 @@
             submitBtn.innerText = "Thinking...";
             submitBtn.disabled = true;
 
-            fetch('/api/next-guess', {
+            fetch('https://wordle-solver-bot.onrender.com/api/next-guess', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ hints: resultString })
@@ -329,7 +329,7 @@
         // --- INITIALIZATION ---
         
         function startGame() {
-            fetch('/api/start-game', { method: 'POST' })
+            fetch('https://wordle-solver-bot.onrender.com/api/start-game', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
                 botGuess(data.next_word);
