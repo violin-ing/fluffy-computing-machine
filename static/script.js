@@ -6,9 +6,18 @@ const STATE_CYCLE = ['absent', 'present', 'correct'];
 
 const submitBtn = document.getElementById('submit-hints');
 const restartBtn = document.getElementById('restart-btn');
+
+// Error/Game Over modals
 const modal = document.getElementById('modal-overlay');
 const modalTitle = document.getElementById('modal-title');
 const modalMsg = document.getElementById('modal-msg');
+
+// Instruction modal 
+const instructionModal = document.getElementById('instruction-modal');
+const startBtn = document.getElementById('start-btn'); 
+
+
+// === GAME BOARD ===
 
 function initBoard() {
     const board = document.getElementById('board-container');
@@ -22,10 +31,7 @@ function initBoard() {
             tile.className = 'tile';
             tile.id = `tile-${r}-${c}`;
             tile.setAttribute('data-state', 'empty');
-            
-            // Allow clicking only on active row
             tile.addEventListener('click', () => toggleTileState(tile, r));
-            
             rowDiv.appendChild(tile);
         }
         board.appendChild(rowDiv);
@@ -33,16 +39,10 @@ function initBoard() {
 }
 
 function toggleTileState(tile, rowIdx) {
-    // If game over, lock everything
     if (isGameOver) return;
-
-    // Prevent changing empty tiles
     if (tile.innerText === '') return;
-
-    // Only allow clicking active row
     if (rowIdx !== currentRowIndex - 1) return;
 
-    // Cycle colors: gray -> yellow -> green
     const currentState = tile.getAttribute('data-state');
     let nextState = 'absent';
     
@@ -74,7 +74,6 @@ function botGuess(word) {
     if (currentRowIndex >= ROWS) return;
     word = word.toUpperCase();
     
-    // Lock the previous row visually
     if (currentRowIndex > 0) {
         const prevRow = currentRowIndex - 1;
         for(let i=0; i<COLS; i++) {
@@ -82,7 +81,6 @@ function botGuess(word) {
         }
     }
 
-    // Fill the new row
     for (let i = 0; i < COLS; i++) {
         const tile = document.getElementById(`tile-${currentRowIndex}-${i}`);
         tile.innerText = word[i];
@@ -92,14 +90,14 @@ function botGuess(word) {
     currentRowIndex++;
 }
 
-// --- GAME STATE & MODALS ---
+
+// === MODALS + GAME STATE ===
 
 function handleGameOver() {
     isGameOver = true; 
     submitBtn.style.display = 'none'; 
     restartBtn.style.display = 'inline-block'; 
     
-    // Visually lock the last row
     const lastRow = currentRowIndex - 1;
     for(let i=0; i<COLS; i++) {
         const tile = document.getElementById(`tile-${lastRow}-${i}`);
@@ -131,41 +129,45 @@ function closeModal() {
     modal.classList.add('hidden');
 }
 
-// RESTART BUTTON EVENT
+
+// === EVENT LISTENERS ===
+
+// Instructions
+if (startBtn) {
+    startBtn.addEventListener('click', () => {
+        if(instructionModal) instructionModal.classList.add('hidden');
+    });
+}
+
+// Restart button
 restartBtn.addEventListener('click', () => {
     currentRowIndex = 0;
     isGameOver = false;
-    
-    // Reset UI
     restartBtn.style.display = 'none';
     submitBtn.style.display = 'inline-block';
     submitBtn.disabled = false;
     submitBtn.innerText = "Send Hints";
-    
     initBoard(); 
     startGame();
 });
 
-// SUBMIT BUTTON EVENT
+// Submit button
 submitBtn.addEventListener('click', () => {
     const resultString = generateHintString();
     if (!resultString) return;
 
-    // Check for success
     if (resultString === 'ggggg') {
         showModal('win', "Bot found the word!");
         handleGameOver();
         return;
     }
 
-    // 2. Check for failure
     if (currentRowIndex === ROWS) {
         showModal('loss', "Bot failed to solve it within 6 tries.");
         handleGameOver();
         return;
     }
 
-    // Normal turn
     submitBtn.innerText = "Thinking...";
     submitBtn.disabled = true;
 
@@ -194,7 +196,29 @@ submitBtn.addEventListener('click', () => {
     });
 });
 
-// --- INITIALIZATION ---
+// Enter button
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        // If modal is open -> enter to close
+        if (instructionModal && !instructionModal.classList.contains('hidden')) {
+            startBtn.click();
+            return;
+        }
+
+        if (!modal.classList.contains('hidden')) {
+            closeModal();
+            return;
+        }
+
+        // If game is active -> send hints
+        if (!submitBtn.disabled && submitBtn.style.display !== 'none') {
+            submitBtn.click();
+        }
+    }
+});
+
+
+// === INITIALIZATION ===
 
 function startGame() {
     fetch('/api/start-game', { method: 'POST' })
@@ -207,25 +231,6 @@ function startGame() {
         showModal('error', "Is the backend running?");
     });
 }
-
-const instructionModal = document.getElementById('instruction-modal');
-const startBtn = document.getElementById('start-btn');
-
-// When the user clicks "Got it", hide the instructions
-startBtn.addEventListener('click', () => {
-    instructionModal.classList.add('hidden');
-});
-
-const hasSeenInstructions = localStorage.getItem('seenInstructions');
-
-if (hasSeenInstructions) {
-    instructionModal.classList.add('hidden');
-}
-
-startBtn.addEventListener('click', () => {
-    instructionModal.classList.add('hidden');
-    localStorage.setItem('seenInstructions', 'true');
-});
 
 initBoard();
 startGame();
