@@ -73,11 +73,11 @@ button.action-btn:disabled { background-color: #555; cursor: not-allowed; color:
 
 .hidden { display: none !important; }
 
-#modal-overlay {
+.modal-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.85);
     display: flex; justify-content: center; align-items: center;
-    z-index: 100;
+    z-index: 200; /* High z-index to sit on top */
 }
 
 .modal-content {
@@ -85,6 +85,11 @@ button.action-btn:disabled { background-color: #555; cursor: not-allowed; color:
     padding: 40px; text-align: center; border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     min-width: 300px;
+}
+
+.modal-content ul {
+    list-style-position: inside;
+    padding: 0 10px;
 }
 
 .modal-content h2 { margin-top: 0; font-size: 2rem; margin-bottom: 10px;}

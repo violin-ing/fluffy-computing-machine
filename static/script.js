@@ -208,5 +208,24 @@ function startGame() {
     });
 }
 
+const instructionModal = document.getElementById('instruction-modal');
+const startBtn = document.getElementById('start-btn');
+
+// When the user clicks "Got it", hide the instructions
+startBtn.addEventListener('click', () => {
+    instructionModal.classList.add('hidden');
+});
+
+const hasSeenInstructions = localStorage.getItem('seenInstructions');
+
+if (hasSeenInstructions) {
+    instructionModal.classList.add('hidden');
+}
+
+startBtn.addEventListener('click', () => {
+    instructionModal.classList.add('hidden');
+    localStorage.setItem('seenInstructions', 'true');
+});
+
 initBoard();
 startGame();

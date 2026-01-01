@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wordle Solver Bot</title>
+    <title>Wordle Solver</title>
     
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-    <h1>Solver Bot</h1>
+    <h1>Wordle Solver</h1>
 
     <div id="board-container">
         </div>
@@ -19,11 +19,25 @@
         <button id="restart-btn" class="action-btn">Restart Game</button>
     </div>
 
+    <div id="instruction-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>HOW TO USE</h2>
+            <ul style="text-align: left; margin-bottom: 30px; line-height: 1.6; color: #ccc;">
+                <li><strong>Step 1:</strong> The bot will give you a starting word.</li>
+                <li><strong>Step 2:</strong> Type that word into the real (or imaginary) Wordle game.</li>
+                <li><strong>Step 3:</strong> Click the tiles on this screen to match the colors you see in the real game (green, yellow, gray).</li>
+                <li><strong>Step 4:</strong> Click <strong>SEND HINTS</strong> to get the next best guess.</li>
+                <li><strong>Step 5:</strong> Repeat until the bot guesses the word (or you fucked something up and didn't send the right hint).</li>
+            </ul>
+            <button id="start-btn">OKAY LET'S START!</button>
+        </div>
+    </div>
+
     <div id="modal-overlay" class="hidden">
         <div class="modal-content">
-            <h2 id="modal-title">TITLE</h2>
-            <p id="modal-msg">Message goes here</p>
-            <button onclick="closeModal()">Close</button>
+            <h2 id="modal-title">POOP</h2>
+            <p id="modal-msg">poop</p>
+            <button onclick="closeModal()">poop</button>
         </div>
     </div>
 
