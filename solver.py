@@ -19,10 +19,7 @@ class WordleSolver:
         }
 
         self.first_guess_rank_dict = {
-            0: [],
-            1: [],
-            2: [],
-            3: [],
+            3: [], # Optimized
             4: []
         }
 
@@ -41,20 +38,16 @@ class WordleSolver:
                 unique_letters = len(set(list(word)))
                 self.word_rank_dict[unique_letters].append(word)
 
-                # For first guess -> pick word with three unique vowels
-                vowel_count = 0
-                seen_letters = []
-                seen_vowels = []
-                for char in word:
-                    if char in seen_letters:
-                        continue
-                    if char in ['a', 'e', 'i', 'o', 'u']:
-                        if char not in seen_vowels:
-                            vowel_count += 1
-                            seen_vowels.append(char)
-                    seen_letters.append(char)
-                if len(seen_letters) == 5:
-                    self.first_guess_rank_dict[vowel_count].append(word)
+                # For first guess -> pick word with three unique vowels from rank-5 words
+                if unique_letters == 5:
+                    vowel_count = 0
+                    for char in word:
+                        if char in ['a', 'e', 'i', 'o', 'u']:
+                                vowel_count += 1
+
+                    if vowel_count in self.first_guess_rank_dict:
+                            self.first_guess_rank_dict[vowel_count].append(word)
+
 
 
     def word_ranker(self, word_list):
@@ -62,7 +55,9 @@ class WordleSolver:
 
         for word in word_list:
             unique_letters = len(set(list(word)))
-            new_rank_dict[unique_letters].append(word)
+
+            if unique_letters in new_rank_dict:
+                new_rank_dict[unique_letters].append(word)
 
         return new_rank_dict
     
@@ -73,10 +68,9 @@ class WordleSolver:
         self.white_letters = []
         self.current_guess = ""
         
-        initial_guess_list = self.first_guess_rank_dict.get(3, self.full_list)
-        if not initial_guess_list: initial_guess_list = self.full_list
+        starters = self.first_guess_rank_dict[3] + self.first_guess_rank_dict[4]
+        self.current_guess = random.choice(starters) if starters else random.choice(self.full_list)
         
-        self.current_guess = random.choice(initial_guess_list)
         return self.current_guess
     
 
