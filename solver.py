@@ -18,7 +18,7 @@ class WordleSolver:
             5: []
         }
 
-        self.vowel_rank_dict = {
+        self.first_guess_rank_dict = {
             0: [],
             1: [],
             2: [],
@@ -43,13 +43,17 @@ class WordleSolver:
 
                 # For first guess -> pick word with three unique vowels
                 vowel_count = 0
+                seen_letters = []
                 seen_vowels = []
                 for char in word:
+                    if char in seen_letters:
+                        continue
                     if char in ['a', 'e', 'i', 'o', 'u']:
                         if char not in seen_vowels:
                             vowel_count += 1
                             seen_vowels.append(char)
-                self.vowel_rank_dict[vowel_count].append(word)
+                    seen_letters.append(char)
+                self.first_guess_rank_dict[vowel_count].append(word)
 
 
     def word_ranker(self, word_list):
@@ -68,7 +72,7 @@ class WordleSolver:
         self.white_letters = []
         self.current_guess = ""
         
-        initial_guess_list = self.vowel_rank_dict.get(3, self.full_list)
+        initial_guess_list = self.first_guess_rank_dict.get(3, self.full_list)
         if not initial_guess_list: initial_guess_list = self.full_list
         
         self.current_guess = random.choice(initial_guess_list)
