@@ -53,7 +53,8 @@ class WordleSolver:
                             vowel_count += 1
                             seen_vowels.append(char)
                     seen_letters.append(char)
-                self.first_guess_rank_dict[vowel_count].append(word)
+                if len(seen_letters) == 5:
+                    self.first_guess_rank_dict[vowel_count].append(word)
 
 
     def word_ranker(self, word_list):
