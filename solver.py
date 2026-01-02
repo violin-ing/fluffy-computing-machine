@@ -9,11 +9,21 @@ class WordleSolver:
         self.full_list = []
         self.filtered_list = []
 
+        self.first_guess = True
+
         self.word_rank_dict = {
             2: [], # No possible word with only 1 letter
             3: [],
             4: [],
             5: []
+        }
+
+        self.vowel_rank_dict = {
+            0: [],
+            1: [],
+            2: [],
+            3: [],
+            4: []
         }
 
         self.green_letters = ['_', '_', '_', '_', '_']
@@ -26,16 +36,29 @@ class WordleSolver:
     def load_words(self):
         with open(FILEPATH) as f:
             for line in f:
-                self.full_list.append(line.strip())
-                unique_letters = len(set(list(line.strip())))
-                self.word_rank_dict[unique_letters].append(line.strip())
+                word = line.strip().lower()
+                self.full_list.append(word)
+                unique_letters = len(set(list(word)))
+                self.word_rank_dict[unique_letters].append(word)
+
+                # For first guess -> pick word with three unique vowels
+                vowel_count = 0
+                seen_vowels = []
+                for char in word:
+                    if char in ['a', 'e', 'i', 'o', 'u']:
+                        if char not in seen_vowels:
+                            vowel_count += 1
+                            seen_vowels.append(char)
+                self.vowel_rank_dict[vowel_count].append(word)
 
 
     def word_ranker(self, word_list):
         new_rank_dict = { 2: [], 3: [], 4: [], 5: [] }
+
         for word in word_list:
             unique_letters = len(set(list(word)))
             new_rank_dict[unique_letters].append(word)
+
         return new_rank_dict
     
 
@@ -45,7 +68,7 @@ class WordleSolver:
         self.white_letters = []
         self.current_guess = ""
         
-        initial_guess_list = self.word_rank_dict.get(5, self.full_list)
+        initial_guess_list = self.vowel_rank_dict.get(3, self.full_list)
         if not initial_guess_list: initial_guess_list = self.full_list
         
         self.current_guess = random.choice(initial_guess_list)
@@ -56,12 +79,12 @@ class WordleSolver:
         letters_seen = {}
         
         # PASS 1: Handle 'g' and 'w'
-        # We do this first so we know which letters are definitely in the word
+        # So we know which letters are definitely in the word
         for i in range(5):
             char = guess[i]
             color = hint[i]
             
-            if color != 'w': # If Green or Yellow
+            if color != 'w':
                 if char not in letters_seen:
                     letters_seen[char] = 1
                 else:
@@ -91,11 +114,10 @@ class WordleSolver:
         possible_words = self.filtered_list if self.filtered_list else self.full_list
         new_filtered_list = []
 
-        # --- YOUR ORIGINAL FILTER LOGIC (Adapted & Fixed) ---
         for word in possible_words:
             add = True
             
-            # Check letters seen (Counts)
+            # Check letters seen (counts)
             for char in letters_seen:
                 count_needed = letters_seen[char]
                 
@@ -140,11 +162,10 @@ class WordleSolver:
             if add:
                 new_filtered_list.append(word)
 
-        # Return new word
         self.filtered_list = new_filtered_list
 
         if not self.filtered_list:
-            return None # Error
+            return None # WordNotFound error
         
         new_ranks = self.word_ranker(self.filtered_list)
 
